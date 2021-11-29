@@ -118,4 +118,60 @@ export default defineHook(({ schedule }, { database, logger }) => {
       .then((e) => logger.info(`Event ${e[0].id} updated to "event_type_triage" successfully`))
       .catch((e) => logger.error(e));
   });
+
+  /**
+   * Run every tuesday at noon
+   * Update the next event with the real event type and the prezo
+   */
+  schedule('12 0 * * TUE', async (): Promise<void> => {
+    logger.info('Running CRON of event event_type_triage -> place_triage');
+    const date = DateTime.now().plus({ days: 2 }).toISODate();
+    // Get the next event
+    const event = await database('events')
+      .select('*').where({ date })
+      .first()
+      .catch((e) => logger.error(e));
+    if (!event) {
+      return logger.error('Cron of tuesday failed to find an event');
+    }
+    // Random event type
+    // TODO: Change with votes
+    const suggestion = await database('event_type_suggestions_event_types').select('*').where({ event_type_suggestions_id: event.event_type_suggestion });
+    const eventType = suggestion[Math.floor(Math.random() * suggestion.length)].event_types_id;
+
+    /* Select the prezo */
+    // Last 3 prezo
+    const lastPrezos = await database('events')
+      .select('prezo', 'date')
+      .orderBy('date', 'desc')
+      .distinct()
+      .limit(3);
+    // Flatten the array
+    const lastPrezoArray: string[] = [];
+    lastPrezos.forEach((prezo) => {
+      lastPrezoArray.push(prezo.prezo);
+    });
+    // Get who is going to the event
+    const presences = await database('event_presences').select('*').where({ event: event.id });
+    const noPrezo: string[] = [];
+    // Remove the last prezo from the array
+    presences.forEach((presence) => {
+      if (!lastPrezoArray.includes(presence.user)) {
+        noPrezo.push(presence.user);
+      }
+    });
+    let prezo = null;
+    if (noPrezo.length === 0) {
+      // Error no prezo
+      logger.error(`No allowed prezo on the event ${event.id}`);
+    } else {
+      // Random prezo
+      prezo = noPrezo[Math.floor(Math.random() * noPrezo.length)];
+    }
+    return database('events')
+      .update({ status: 'place_triage', event_type: eventType, prezo }, ['id'])
+      .where({ id: event.id })
+      .then((e) => logger.info(`Event ${e[0].id} updated to "place_triage" successfully`))
+      .catch((e) => logger.error(e));
+  });
 });
