@@ -123,9 +123,9 @@ export default defineHook(({ schedule }, { database, logger }) => {
    * Run every tuesday at noon
    * Update the next event with the real event type and the prezo
    */
-  schedule('12 0 * * TUE', async (): Promise<void> => {
+  schedule('0 12 * * TUE', async (): Promise<void> => {
     logger.info('Running CRON of event event_type_triage -> place_triage');
-    const date = DateTime.now().plus({ days: 2 }).toISODate();
+    const date = DateTime.now().plus({ days: 1 }).toISODate();
     // Get the next event
     const event = await database('events')
       .select('*').where({ date })
@@ -172,6 +172,50 @@ export default defineHook(({ schedule }, { database, logger }) => {
       .update({ status: 'place_triage', event_type: eventType, prezo }, ['id'])
       .where({ id: event.id })
       .then((e) => logger.info(`Event ${e[0].id} updated to "place_triage" successfully`))
+      .catch((e) => logger.error(e));
+  });
+
+  /**
+   * Run every wednesday at noon
+   * Change the event to running
+   */
+  schedule('0 12 * * WED', async (): Promise<void> => {
+    logger.info('Running CRON of event place_triage -> running');
+    const date = DateTime.now().toISODate();
+    // Get the next event
+    const event = await database('events')
+      .select('*').where({ date })
+      .first()
+      .catch((e) => logger.error(e));
+    if (!event) {
+      return logger.error('Cron of wednesday failed to find an event');
+    }
+    return database('events')
+      .update({ status: 'running' }, ['id'])
+      .where({ id: event.id })
+      .then((e) => logger.info(`Event ${e[0].id} updated to "running" successfully`))
+      .catch((e) => logger.error(e));
+  });
+
+  /**
+  * Run every wednesday at 2PM
+  * Change the event to running
+  */
+  schedule('0 14 * * WED', async (): Promise<void> => {
+    logger.info('Running CRON of event running -> finished');
+    const date = DateTime.now().toISODate();
+    // Get the next event
+    const event = await database('events')
+      .select('*').where({ date })
+      .first()
+      .catch((e) => logger.error(e));
+    if (!event) {
+      return logger.error('Cron of wednesday failed to find an event');
+    }
+    return database('events')
+      .update({ status: 'finished' }, ['id'])
+      .where({ id: event.id })
+      .then((e) => logger.info(`Event ${e[0].id} updated to "finished" successfully`))
       .catch((e) => logger.error(e));
   });
 });
