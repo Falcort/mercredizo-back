@@ -8,6 +8,17 @@ const API_URL = 'http://localhost:8055';
 export default defineHook(({ schedule }, { database, logger }) => {
   logger.info(`🎯 Hook ${pack.name} loaded with version ${pack.version}`);
 
+  async function findEventByDate(days = 0): Promise<Record<string, any>> {
+    const date = DateTime.now().plus({ days }).toISODate();
+    const event = await database('events')
+      .select('*').where({ date })
+      .first();
+    if (!event) {
+      throw new Error('No event found');
+    }
+    return event;
+  }
+
   /**
    * Run every sunday
    * Create the next event
@@ -28,20 +39,13 @@ export default defineHook(({ schedule }, { database, logger }) => {
   /**
    * Run every tuesday
    * Update the next event with event types suggestions
-   * @tested on 29/11/2021
+   * @tested on 29 nov 2021
    * @CRON 0 0 * * TUE
    */
   schedule('0 0 * * TUE', async (): Promise<void> => {
     logger.info('CRON - +event_type_suggestions & status -> event_type_triage: Running');
     try {
-      const date = DateTime.now().plus({ days: 1 }).toISODate();
-      // Get the next event
-      const event = await database('events')
-        .select('*').where({ date })
-        .first();
-      if (!event) {
-        throw new Error('No event found');
-      }
+      const event = await findEventByDate(1);
       await axios.patch(`${API_URL}/actions/${event.id}/generateEventTypeSuggestions`);
     } catch (e) {
       logger.error('CRON - +event_type_suggestions & status -> event_type_triage: Unknown error');
@@ -52,19 +56,13 @@ export default defineHook(({ schedule }, { database, logger }) => {
   /**
    * Run every tuesday at noon
    * Update the next event with the real event type and the prezo
+   * @tested on 29 nov 2021
    * @CRON 0 12 * * TUE
    */
   schedule('0 12 * * TUE', async (): Promise<void> => {
     logger.info('CRON - +event_type & +prezo & status -> place_triage: Running');
     try {
-      const date = DateTime.now().plus({ days: 1 }).toISODate();
-      // Get the next event
-      const event = await database('events')
-        .select('*').where({ date })
-        .first();
-      if (!event) {
-        throw new Error('No event found');
-      }
+      const event = await findEventByDate(1);
 
       // Set the prezo
       await axios.patch(`${API_URL}/actions/${event.id}/generatePrezo`);
@@ -85,19 +83,13 @@ export default defineHook(({ schedule }, { database, logger }) => {
   /**
    * Run every wednesday at noon
    * Change the event to running
+   * @tested on 29 november 2021
    * @CRON 0 12 * * WED
    */
   schedule('0 12 * * WED', async (): Promise<void> => {
     logger.info('CRON - status -> running: Running');
     try {
-      const date = DateTime.now().toISODate();
-      // Get the next event
-      const event = await database('events')
-        .select('*').where({ date })
-        .first();
-      if (!event) {
-        throw new Error('No event found');
-      }
+      const event = await findEventByDate();
       await database('events')
         .update({ status: 'running' }, ['id'])
         .where({ id: event.id });
@@ -110,19 +102,13 @@ export default defineHook(({ schedule }, { database, logger }) => {
   /**
   * Run every wednesday at 2PM
   * Change the event to running
+  * @tested on 29 nov 2021
   * @CRON 0 14 * * WED
   */
   schedule('0 14 * * WED', async (): Promise<void> => {
     logger.info('CRON - status -> finished: Running');
     try {
-      const date = DateTime.now().toISODate();
-      // Get the next event
-      const event = await database('events')
-        .select('*').where({ date })
-        .first();
-      if (!event) {
-        throw new Error('No event found');
-      }
+      const event = await findEventByDate(0);
       await database('events')
         .update({ status: 'finished' }, ['id'])
         .where({ id: event.id });
