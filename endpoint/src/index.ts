@@ -45,7 +45,8 @@ export default defineEndpoint((router, { database, logger }) => {
   });
 
   /**
-   * Function to generate the last events sugg
+   * Function to generate the last events suggestions
+   * TODO: Delete last suggestions
    */
   router.patch('/:id/generateEventTypeSuggestions', async (request: Request, response: Response) => {
     let result: any = '';
