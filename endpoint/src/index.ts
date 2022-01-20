@@ -193,9 +193,9 @@ export default defineEndpoint((router, { database, logger }) => {
 
       let prezo = '';
       if (potentialPrezo.length !== 0) {
-        prezo = potentialPrezo[Math.floor(Math.random() * potentialPrezo.length)];
+        prezo = potentialPrezo[Math.floor(Math.random() * potentialPrezo.length)].user;
       } else {
-        prezo = presences[Math.floor(Math.random() * presences.length)];
+        prezo = presences[Math.floor(Math.random() * presences.length)].user;
       }
 
       await database('events')
