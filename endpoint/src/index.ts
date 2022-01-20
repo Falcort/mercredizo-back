@@ -44,11 +44,11 @@ export default defineEndpoint((router, { database, logger }) => {
     response.status(status).send(result);
   });
 
-  // TODO: Remove last 4 event types
   router.get('/:id/generateEventTypeSuggestions', async (request: Request, response: Response) => {
     let result: any = '';
     let status = 500;
     try {
+      result = {};
       const { id } = request.params;
 
       const event = await database('events')
@@ -57,7 +57,7 @@ export default defineEndpoint((router, { database, logger }) => {
       if (!event) {
         throw new Error('Cannot find the event');
       }
-      // Get all the required elements to have the ratings of every participants
+      // Get all the required elements to have the ratings of every participant
       const presences = await database('event_presences').select('*').where({ event: event.id }).whereIn('presence', ['present', 'unknow']);
       if (presences.length === 0) {
         throw new Error('No participants');
@@ -66,8 +66,10 @@ export default defineEndpoint((router, { database, logger }) => {
       const usersID: number[] = [];
       presences.forEach((presence) => usersID.push(presence.user));
       const likes = await database('event_type_preferences').select('*').whereIn('user', usersID);
+
       // Get all the events types
       const eventTypes = await database('event_types').select('*');
+
       // Iterate over the evenTypes to create the average
       const ratings = eventTypes.map((eventType) => {
         const buffer = { ...eventType };
@@ -82,6 +84,20 @@ export default defineEndpoint((router, { database, logger }) => {
         });
         buffer.avg = buffer.total / buffer.count;
         return buffer;
+      });
+
+      // Remove the last event types
+      const lastEvents = await database('events')
+        .select('event_type', 'date')
+        .orderBy('date', 'desc')
+        .distinct()
+        .limit(4);
+
+      lastEvents.forEach((elem) => {
+        const index = ratings.findIndex((a) => a.id === elem.event_type);
+        if (index !== -1) {
+          ratings.splice(index, 1);
+        }
       });
 
       const myMap: Record<string, string[]> = {};
@@ -102,10 +118,11 @@ export default defineEndpoint((router, { database, logger }) => {
       keys.sort();
 
       keys.forEach((key) => {
-        const shuffled = shuffle(myMap[key] || []);
-        suggestions = [...shuffled];
+        const shuffled: string[] = shuffle(myMap[key] || []);
+        suggestions = [...suggestions, ...shuffled];
       });
 
+      // Get 3 top elements
       suggestions = suggestions.slice(0, 3);
 
       // Directus relation complex system
@@ -124,9 +141,60 @@ export default defineEndpoint((router, { database, logger }) => {
           .update({ event_type_suggestions_id: eventTypeSuggestion[0].id })
           .where({ id: bufferIDs[i] });
       }
+
       // Update the event
       result = await database('events')
         .update({ status: 'event_type_triage', event_type_suggestion: eventTypeSuggestion[0].id }, ['id'])
+        .where({ id });
+      status = 200;
+    } catch (e) {
+      logger.error(e);
+      result = e;
+    }
+    response.status(status).send(result);
+  });
+
+  router.get('/:id/generatePrezo', async (request: Request, response: Response) => {
+    let result: any = '';
+    let status = 500;
+    try {
+      const { id } = request.params;
+
+      const event = await database('events')
+        .select('*').where({ id })
+        .first();
+      if (!event) {
+        throw new Error('Cannot find the event');
+      }
+
+      const lastPrezos = await database('events')
+        .select('prezo', 'date')
+        .orderBy('date', 'desc')
+        .distinct()
+        .limit(3);
+
+      // Get who is going to the event
+      const presences = await database('event_presences').select('*').where({ event: event.id, presence: 'present' });
+      const potentialPrezo: any[] = [...presences];
+      // Remove the last prezo from the array
+      potentialPrezo.forEach((elem) => {
+        potentialPrezo.splice(potentialPrezo.findIndex((a) => a === elem.user), 1);
+      });
+
+      // Remove old prezo
+      lastPrezos.forEach((elem) => {
+        potentialPrezo.splice(potentialPrezo.findIndex((a) => a === elem.prezo), 1);
+      });
+
+      let prezo: string = '';
+      if (potentialPrezo.length !== 0) {
+        prezo = potentialPrezo[Math.floor(Math.random() * potentialPrezo.length)];
+      } else {
+        prezo = presences[Math.floor(Math.random() * presences.length)];
+      }
+
+      await database('events')
+        .update({ prezo }, ['id'])
         .where({ id });
       status = 200;
     } catch (e) {
