@@ -24,7 +24,7 @@ export default defineEndpoint((router, { database, logger }) => {
   /**
    * Endpoint to create and event
    */
-  router.get('/createEvent/:date', async (request: Request, response: Response) => {
+  router.post('/createEvent/:date', async (request: Request, response: Response) => {
     let result: any = '';
     let status = 500;
     try {
@@ -44,11 +44,13 @@ export default defineEndpoint((router, { database, logger }) => {
     response.status(status).send(result);
   });
 
-  router.get('/:id/generateEventTypeSuggestions', async (request: Request, response: Response) => {
+  /**
+   * Function to generate the last events sugg
+   */
+  router.patch('/:id/generateEventTypeSuggestions', async (request: Request, response: Response) => {
     let result: any = '';
     let status = 500;
     try {
-      result = {};
       const { id } = request.params;
 
       const event = await database('events')
@@ -105,8 +107,7 @@ export default defineEndpoint((router, { database, logger }) => {
         if (myMap[rating.avg]) {
           const current = myMap[rating.avg];
           if (current) {
-            const buffer = [...current, rating.id];
-            myMap[rating.avg] = buffer;
+            myMap[rating.avg] = [...current, rating.id];
           }
         } else {
           myMap[rating.avg] = [rating.id];
@@ -154,7 +155,10 @@ export default defineEndpoint((router, { database, logger }) => {
     response.status(status).send(result);
   });
 
-  router.get('/:id/generatePrezo', async (request: Request, response: Response) => {
+  /**
+   * Function to generate the Prezo of the event
+   */
+  router.patch('/:id/generatePrezo', async (request: Request, response: Response) => {
     let result: any = '';
     let status = 500;
     try {
@@ -186,7 +190,7 @@ export default defineEndpoint((router, { database, logger }) => {
         potentialPrezo.splice(potentialPrezo.findIndex((a) => a === elem.prezo), 1);
       });
 
-      let prezo: string = '';
+      let prezo = '';
       if (potentialPrezo.length !== 0) {
         prezo = potentialPrezo[Math.floor(Math.random() * potentialPrezo.length)];
       } else {
