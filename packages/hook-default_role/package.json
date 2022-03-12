@@ -1,0 +1,18 @@
+{
+	"name": "hook-default_role",
+	"version": "1.0.0",
+	"keywords": [
+		"directus",
+		"directus-extension",
+		"directus-custom-hook"
+	],
+	"directus:extension": {
+		"type": "hook",
+		"path": "dist/index.js",
+		"source": "src/index.ts",
+		"host": "^9.1.2"
+	},
+	"scripts": {
+		"build": "directus-extension build"
+	}
+}
