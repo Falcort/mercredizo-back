@@ -28,7 +28,7 @@ const b2l = ref(false);
 const generateEventTypeSuggestions = async () => {
   b1l.value = true;
   try {
-    await api.patch(`/actions/${props.primaryKey}/generateEventTypeSuggestions`);
+    await api.patch(`/actions/${props.primaryKey}/generateEventTypeSuggestions?force=true`);
     useNotificationsStore().add({
       title: 'Success',
       type: 'success',
