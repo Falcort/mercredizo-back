@@ -66,7 +66,7 @@ export default async function pickPrezo(request: Request, database: Knex): Promi
   }
 
   await database('events')
-    .update({ prezo }, ['id'])
+    .update({ prezo })
     .where({ id });
 
   await database<databaseLogger>('logs').insert({

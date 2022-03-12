@@ -12,7 +12,7 @@ export default async function generateEvent(request: Request, database: Knex): P
     throw new Error('Invalid date');
   }
 
-  const event = await database('events').insert({ id: crypto.randomUUID(), date, status: 'enlist' }, ['*']);
+  const event = await database('events').insert({ id: crypto.randomUUID(), date }, ['*']);
   await database<databaseLogger>('logs').insert({
     id: crypto.randomUUID(),
     date_created: DateTime.local().toJSDate(),
