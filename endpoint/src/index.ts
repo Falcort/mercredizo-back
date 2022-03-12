@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import { DateTime } from 'luxon';
 import pack from '../package.json';
+import { pickPrezo } from './functions';
 
 function shuffle(array: any[]) {
   const buffer = [...array];
@@ -160,52 +161,12 @@ export default defineEndpoint((router, { database, logger }) => {
    * Function to generate the Prezo of the event
    */
   router.patch('/:id/generatePrezo', async (request: Request, response: Response) => {
-    let result: any = '';
-    let status = 500;
     try {
-      const { id } = request.params;
-
-      const event = await database('events')
-        .select('*').where({ id })
-        .first();
-      if (!event) {
-        throw new Error('Cannot find the event');
-      }
-
-      const lastPrezos = await database('events')
-        .select('prezo', 'date')
-        .orderBy('date', 'desc')
-        .distinct()
-        .limit(3);
-
-      // Get who is going to the event
-      const presences = await database('event_presences').select('*').where({ event: event.id, presence: 'present' });
-      const potentialPrezo: any[] = [...presences];
-      // Remove the last prezo from the array
-      potentialPrezo.forEach((elem) => {
-        potentialPrezo.splice(potentialPrezo.findIndex((a) => a === elem.user), 1);
-      });
-
-      // Remove old prezo
-      lastPrezos.forEach((elem) => {
-        potentialPrezo.splice(potentialPrezo.findIndex((a) => a === elem.prezo), 1);
-      });
-
-      let prezo = '';
-      if (potentialPrezo.length !== 0) {
-        prezo = potentialPrezo[Math.floor(Math.random() * potentialPrezo.length)].user;
-      } else {
-        prezo = presences[Math.floor(Math.random() * presences.length)].user;
-      }
-
-      await database('events')
-        .update({ prezo }, ['id'])
-        .where({ id });
-      status = 200;
+      await pickPrezo(request, database);
+      response.status(200).send('success');
     } catch (e) {
       logger.error(e);
-      result = e;
+      response.status(500).send(e);
     }
-    response.status(status).send(result);
   });
 });
