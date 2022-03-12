@@ -12,7 +12,7 @@ import { databaseLogger, databaseLoggerDump } from '../types';
  */
 export function shuffle(array: any[]) {
   const buffer = [...array];
-  let currentIndex = array.length;
+  let currentIndex = buffer.length;
   let randomIndex;
 
   while (currentIndex !== 0) {
@@ -21,7 +21,7 @@ export function shuffle(array: any[]) {
     [buffer[currentIndex], buffer[randomIndex]] = [buffer[randomIndex], buffer[currentIndex]];
   }
 
-  return array;
+  return buffer;
 }
 /**
  * Function to generate the last events suggestions
