@@ -1,0 +1,21 @@
+{
+	"name": "interface_events-reloads",
+	"version": "1.1.0",
+	"keywords": [
+		"directus",
+		"directus-extension",
+		"directus-custom-hook"
+	],
+	"directus:extension": {
+		"type": "interface",
+		"path": "dist/index.js",
+		"source": "src/index.ts",
+		"host": "^9.1.2"
+	},
+	"scripts": {
+		"build": "directus-extension build"
+	},
+	"dependencies": {
+		"vue": "^3.2.27"
+	}
+}
