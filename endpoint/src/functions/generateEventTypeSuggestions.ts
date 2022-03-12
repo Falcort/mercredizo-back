@@ -25,14 +25,13 @@ export function shuffle(array: any[]) {
 }
 /**
  * Function to generate the last events suggestions
- * TODO: Delete last suggestions
  */
 export async function generateEventTypeSuggestions(request: Request, database: Knex): Promise<void> {
   const dump: databaseLoggerDump[] = [];
   const { id } = request.params;
 
   const event = await database('events')
-    .select('id').where({ id })
+    .select('id', 'event_type_suggestion').where({ id })
     .first();
   if (!event) {
     throw new Error('Cannot find the event');
@@ -176,6 +175,10 @@ export async function generateEventTypeSuggestions(request: Request, database: K
   await database('events')
     .update({ event_type_suggestion: eventTypeSuggestion[0].id })
     .where({ id });
+
+  if (event.event_type_suggestion) {
+    await database('event_type_suggestions').del().where({ id: event.event_type_suggestion });
+  }
 
   await database<databaseLogger>('logs').insert({
     id: crypto.randomUUID(), date_created: DateTime.local().toJSDate(), function: 'generateEventTypeSuggestions', dump: { value: dump },
