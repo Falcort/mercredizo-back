@@ -1,9 +1,8 @@
 import { defineEndpoint } from '@directus/extensions-sdk';
 import { Request, Response } from 'express';
 import crypto from 'crypto';
-import { DateTime } from 'luxon';
 import pack from '../package.json';
-import { pickPrezo } from './functions';
+import { generateEvent, pickPrezo } from './functions';
 
 function shuffle(array: any[]) {
   const buffer = [...array];
@@ -26,23 +25,13 @@ export default defineEndpoint((router, { database, logger }) => {
    * Endpoint to create and event
    */
   router.post('/createEvent/:date', async (request: Request, response: Response) => {
-    let result: any = '';
-    let status = 500;
     try {
-      const { date } = request.params;
-      const luxonDate = DateTime.fromISO(date || '');
-
-      if (!luxonDate.isValid) {
-        throw new Error('Invalid date');
-      }
-
-      result = await database('events').insert({ id: crypto.randomUUID(), date, status: 'enlist' }, ['id']);
-      status = 200;
+      await generateEvent(request, database);
+      response.status(200).send('success');
     } catch (e) {
       logger.error(e);
-      result = e;
+      response.status(500).send(e);
     }
-    response.status(status).send(result);
   });
 
   /**
